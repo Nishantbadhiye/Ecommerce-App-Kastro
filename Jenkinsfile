@@ -25,6 +25,13 @@ pipeline {
             }
         }
 
+        stage('Maven Build') {
+            steps {
+                sh "mvn clean package -DskipTests=true"
+            }
+        }
+
+
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('sonar') {
@@ -38,12 +45,7 @@ pipeline {
             }
         }
 
-        stage('Maven Build') {
-            steps {
-                sh "mvn clean package -DskipTests=true"
-            }
-        }
-
+        
         stage('Publish to Nexus') {
             steps {
                 withMaven(
