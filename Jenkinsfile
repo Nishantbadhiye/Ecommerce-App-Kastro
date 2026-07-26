@@ -30,8 +30,8 @@ pipeline {
                 withSonarQubeEnv('sonar') {
                     sh '''
                     $SCANNER_HOME/bin/sonar-scanner \
-                    -Dsonar.projectName=ECom \
-                    -Dsonar.projectKey=ECom \
+                    -Dsonar.projectName=Ecom \
+                    -Dsonar.projectKey=Ecom \
                     -Dsonar.java.binaries=target/classes
                     '''
                 }
