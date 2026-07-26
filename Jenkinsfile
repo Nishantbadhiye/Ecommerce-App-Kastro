@@ -101,8 +101,7 @@ pipeline {
         stage('Deploy To Kubernetes') {
             steps {
                 withKubeConfig(caCertificate: '', clusterName: 'nishant-cluster', contextName: '', credentialsId: 'k8-token', namespace: 'webapps', restrictKubeConfigAccess: false, serverUrl: 'https://4AA1DB94952495B8F44559C6DC8E8F76.gr7.us-east-1.eks.amazonaws.com') {
- } {
-                    sh "kubectl apply -f deployment-service.yaml -n webapps"
+                     sh "kubectl apply -f deployment-service.yaml -n webapps"
                 }
             }
         }
