@@ -1,72 +1,101 @@
 pipeline {
     agent any
 
-    options {
-        disableConcurrentBuilds()
+    tools {
+        jdk 'jdk21'
+        maven 'maven'
     }
 
     environment {
-        IMAGE_NAME = "nishantbadhiye07/multibranch-flask-app"
-        GIT_USER   = "Nishantbadhiye"
-        GIT_EMAIL  = "nishantbadhiye09@gmail.com"
+        DOCKER_IMAGE = "nishantbadhiye07/ecommerce:latest"
+        SCANNER_HOME = tool 'sonar-scanner'
     }
 
     stages {
 
-        stage('Checkout') {
+        stage('Git Checkout') {
             steps {
-                checkout scm
+                git 'https://github.com/Nishantbadhiye/Ecommerce-App-Kastro.git'
             }
         }
 
-        stage('Build and Push Image') {
-            when { branch 'main' }
+        stage('File System Scan') {
+            steps {
+                sh "trivy fs --format table -o trivy-fs-report.html ."
+            }
+        }
+
+        stage('SonarQube Analysis') {
             steps {
                 script {
-                    env.IMAGE_TAG = "build-${BUILD_NUMBER}"
-
-                    withCredentials([usernamePassword(
-                        credentialsId: 'docker-cred',
-                        usernameVariable: 'DOCKER_USER',
-                        passwordVariable: 'DOCKER_PASS'
-                    )]) {
-                        sh """
-                        docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
-                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                        docker push ${IMAGE_NAME}:${IMAGE_TAG}
-                        """
+                    withSonarQubeEnv('sonar') {
+                        sh 'mvn sonar:sonar'
                     }
                 }
             }
         }
 
-        stage('Update K8s Manifest') {
-            when { branch 'main' }
+        stage('Maven Build') {
+            steps {
+                sh "mvn clean package -DskipTests=true"
+            }
+        }
+
+        stage('Publish to Nexus') {
+            steps {
+                withMaven(
+                    globalMavenSettingsConfig: 'maven-setting',
+                    jdk: 'jdk21',
+                    maven: 'maven'
+                ) {
+                    sh "mvn deploy"
+                }
+            }
+        }
+
+        stage('Docker Build & Tag') {
             steps {
                 script {
-                    withCredentials([usernamePassword(
-                        credentialsId: 'git-cred',
-                        usernameVariable: 'GIT_USERNAME',
-                        passwordVariable: 'GIT_TOKEN'
-                    )]) {
-                        sh """
-                        set -e
-                        git config user.name "$GIT_USER"
-                        git config user.email "$GIT_EMAIL"
-
-                        git fetch origin
-                        git checkout main
-                        git reset --hard origin/main
-
-                        sed -i "s|image:.*|image: ${IMAGE_NAME}:${IMAGE_TAG}|" k8s/deployment.yml
-
-                        git add k8s/deployment.yml
-                        git diff --cached --quiet || git commit -m "Updated image to ${IMAGE_TAG}"
-                        git push https://${GIT_USERNAME}:${GIT_TOKEN}@github.com/Nishantbadhiye/multi-feature-argocd-deployment.git main
-                        """
+                    withDockerRegistry(credentialsId: 'docker-cred') {
+                        sh "docker build -t ${DOCKER_IMAGE} ."
                     }
                 }
             }
         }
+
+        stage('Docker Image Scan') {
+            steps {
+                sh "trivy image --format table -o trivy-image-report.html ${DOCKER_IMAGE}"
+                archiveArtifacts artifacts: 'trivy-image-report.html', fingerprint: true
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                script {
+                    withDockerRegistry(credentialsId: 'docker-cred') {
+                        sh "docker push ${DOCKER_IMAGE}"
+                    }
+                }
+            }
+        }
+
+        stage('Deploy to Container') {
+            steps {
+                script {
+                    sh "docker stop ecommerce-container || true && docker rm ecommerce-container || true"
+                    sh "docker run -d --name ecommerce-container -p 8083:8080 ${DOCKER_IMAGE}"
+                }
+            }
+        }
+
+        stage('Deploy To Kubernetes') {
+            steps {
+                withKubeCredentials(kubectlCredentials: [[caCertificate: '', clusterName: 'nishant-cluster', contextName: '', credentialsId: 'k8-token', namespace: 'webapps', serverUrl: 'https://4AA1DB94952495B8F44559C6DC8E8F76.gr7.us-east-1.eks.amazonaws.com']]) {
+                    sh "kubectl apply -f deployment-service.yaml -n webapps"
+                }
+            }
+        }
+
     }
 }
