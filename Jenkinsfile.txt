@@ -1,0 +1,106 @@
+pipeline {
+    agent any
+
+    tools {
+        jdk 'jdk21'
+        maven 'maven'
+    }
+
+    environment {
+        DOCKER_IMAGE = "nishantbadhiye07/ecommerce:latest"
+    }
+
+    stages {
+
+        stage('Git Checkout') {
+            steps {
+                git 'https://github.com/Nishantbadhiye/Ecommerce-App-Kastro.git'
+            }
+        }
+
+        stage('Maven Test') {
+            steps {
+                sh "mvn test -DskipTests=true"
+            }
+        }
+
+        stage('File System Scan') {
+            steps {
+                sh "trivy fs --format table -o trivy-fs-report.html ."
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                script {
+                    withSonarQubeEnv(credentialsId: 'sonar-token') {
+                        sh 'mvn sonar:sonar'
+                    }
+                }
+            }
+        }
+
+        stage('Maven Build') {
+            steps {
+                sh "mvn clean package -DskipTests=true"
+            }
+        }
+
+        stage('Publish to Nexus') {
+            steps {
+                withMaven(
+                    globalMavenSettingsConfig: 'maven-setting',
+                    jdk: 'jdk21',
+                    maven: 'maven'
+                ) {
+                    sh "mvn deploy -DskipTests=true"
+                }
+            }
+        }
+
+        stage('Docker Build & Tag') {
+            steps {
+                script {
+                    withDockerRegistry(credentialsId: 'docker-cred') {
+                        sh "docker build -t ${DOCKER_IMAGE} ."
+                    }
+                }
+            }
+        }
+
+        stage('Docker Image Scan') {
+            steps {
+                sh "trivy image --format table -o trivy-image-report.html ${DOCKER_IMAGE}"
+                archiveArtifacts artifacts: 'trivy-image-report.html', fingerprint: true
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                script {
+                    withDockerRegistry(credentialsId: 'docker-cred') {
+                        sh "docker push ${DOCKER_IMAGE}"
+                    }
+                }
+            }
+        }
+
+        stage('Deploy to Container') {
+            steps {
+                script {
+                    sh "docker stop ecommerce-container || true && docker rm ecommerce-container || true"
+                    sh "docker run -d --name ecommerce-container -p 8083:8080 ${DOCKER_IMAGE}"
+                }
+            }
+        }
+
+        stage('Deploy To Kubernetes') {
+            steps {
+                withKubeCredentials(kubectlCredentials: [[caCertificate: '', clusterName: 'nishant-cluster', contextName: '', credentialsId: 'k8-token', namespace: 'webapps', serverUrl: 'https://4AA1DB94952495B8F44559C6DC8E8F76.gr7.us-east-1.eks.amazonaws.com']]) {
+                    sh "kubectl apply -f deployment-service.yaml -n webapps"
+                }
+            }
+        }
+
+    }
+}
