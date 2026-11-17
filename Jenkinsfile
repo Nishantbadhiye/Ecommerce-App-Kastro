@@ -15,7 +15,8 @@ pipeline {
 
         stage('Git Checkout') {
             steps {
-                git 'https://github.com/Nishantbadhiye/Ecommerce-App-Kastro.git'
+                git branch: 'master',
+                    url: 'https://github.com/Nishantbadhiye/Ecommerce-App-Kastro.git'
             }
         }
 
@@ -25,15 +26,7 @@ pipeline {
             }
         }
 
-        stage('Publish To Nexus ') {
-            steps {
-                withMaven(globalMavenSettingsConfig:'settings-maven', jdk:'', maven:'maven3'){ 
-                    sh "mvn deploy"
-                }
-            }
-        }
         
-
         stage('Docker Build') {
             steps {
                 sh 'docker build -t ${DOCKER_IMAGE} .'
@@ -42,16 +35,25 @@ pipeline {
 
         stage('Deploy to Container') {
             steps {
-                script {
-                    sh '''
-                        docker rm -f ecommerce-container || true
-                        docker run -d \
-                            --name ecommerce-container \
-                            -p 8083:8080 \
-                            ${DOCKER_IMAGE}
-                    '''
-                }
+                sh '''
+                    docker rm -f ecommerce-container || true
+
+                    docker run -d \
+                        --name ecommerce-container \
+                        -p 8083:8080 \
+                        ${DOCKER_IMAGE}
+                '''
             }
+        }
+    }
+
+    post {
+        success {
+            echo 'Ecommerce pipeline completed successfully!'
+        }
+
+        failure {
+            echo 'Ecommerce pipeline failed. Check the console output.'
         }
     }
 }
