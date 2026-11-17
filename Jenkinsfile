@@ -46,6 +46,37 @@ pipeline {
             }
         }
 
+
+        stage('Docker Build') {
+    steps {
+        sh '''
+            docker build -t localhost:8082/ecommerce:${BUILD_NUMBER} .
+        '''
+    }
+}
+
+stage('Push Docker Image to Nexus') {
+    steps {
+        withCredentials([usernamePassword(
+            credentialsId: 'nexus-cred',
+            usernameVariable: 'NEXUS_USER',
+            passwordVariable: 'NEXUS_PASSWORD'
+        )]) {
+            sh '''
+                echo "$NEXUS_PASSWORD" | docker login localhost:8082 \
+                    -u "$NEXUS_USER" --password-stdin
+
+                docker push localhost:8082/ecommerce:${BUILD_NUMBER}
+
+                docker logout localhost:8082
+            '''
+        }
+    }
+}
+
+
+
+        
         stage('Docker Build') {
             steps {
                 sh 'docker build -t ${DOCKER_IMAGE} .'
