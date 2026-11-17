@@ -26,7 +26,44 @@ pipeline {
             }
         }
 
-        
+        stage('Deploy to Nexus') {
+            steps {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'nexus-cred',
+                        usernameVariable: 'NEXUS_USER',
+                        passwordVariable: 'NEXUS_PASS'
+                    )
+                ]) {
+                    sh '''
+                        set +x
+
+                        SETTINGS_FILE=$(mktemp)
+                        trap 'rm -f "$SETTINGS_FILE"' EXIT
+
+                        cat > "$SETTINGS_FILE" <<EOF
+<settings>
+    <servers>
+        <server>
+            <id>nexus-releases</id>
+            <username>${NEXUS_USER}</username>
+            <password>${NEXUS_PASS}</password>
+        </server>
+        <server>
+            <id>nexus-snapshots</id>
+            <username>${NEXUS_USER}</username>
+            <password>${NEXUS_PASS}</password>
+        </server>
+    </servers>
+</settings>
+EOF
+
+                        mvn -s "$SETTINGS_FILE" deploy -DskipTests=true
+                    '''
+                }
+            }
+        }
+
         stage('Docker Build') {
             steps {
                 sh 'docker build -t ${DOCKER_IMAGE} .'
