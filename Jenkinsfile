@@ -32,7 +32,7 @@ pipeline {
                     artifacts: [[
                         artifactId: 'EcommerceApp',
                         classifier: '',
-                        file: 'target/EcommerceApp-0.0.1.war',
+                        file: 'target/EcommerceApp.war',
                         type: 'war'
                     ]],
                     credentialsId: 'nexus-cred',
