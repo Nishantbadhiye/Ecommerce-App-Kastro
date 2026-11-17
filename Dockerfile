@@ -1,7 +1,7 @@
 # Use Maven-based image for building
 FROM maven:3.8.7-eclipse-temurin-17 AS builder
 
-# Set the working directory
+# Set the working directory.
 WORKDIR /usr/src/app
 
 # Copy the pom.xml and fetch dependencies
