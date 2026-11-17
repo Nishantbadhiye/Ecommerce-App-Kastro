@@ -41,7 +41,7 @@ pipeline {
                     nexusVersion: 'nexus3',
                     protocol: 'http',
                     repository: 'maven-snapshots',
-                    version: '0.0.${BUILD_NUMBER}'
+                    version: "0.0.${BUILD_NUMBER}"
                 )
             }
         }
