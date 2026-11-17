@@ -50,7 +50,7 @@ pipeline {
         stage('Docker Build') {
     steps {
         sh '''
-            docker build -t localhost:8082/ecommerce:${BUILD_NUMBER} .
+            docker build -t 172.17.112.25:8082/ecommerce:${BUILD_NUMBER} .
         '''
     }
 }
@@ -68,20 +68,11 @@ stage('Push Docker Image to Nexus') {
 
                 docker push 172.17.112.25:8082/ecommerce:${BUILD_NUMBER}
 
-                docker logout localhost:8082
+                docker logout 172.17.112.25:8082
             '''
         }
     }
 }
-
-
-
-        
-        stage('Docker Build') {
-            steps {
-                sh 'docker build -t ${DOCKER_IMAGE} .'
-            }
-        }
 
         stage('Deploy to Container') {
             steps {
