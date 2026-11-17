@@ -41,7 +41,7 @@ pipeline {
                     nexusVersion: 'nexus3',
                     protocol: 'http',
                     repository: 'maven-snapshots',
-                    version: '0.0.${BUILD_NUMBER}-SNAPSHORT'
+                    version: '0.0.${BUILD_NUMBER}'
                 )
             }
         }
@@ -65,14 +65,3 @@ pipeline {
             }
         }
     }
-
-    post {
-        success {
-            echo 'Ecommerce pipeline completed successfully!'
-        }
-
-        failure {
-            echo 'Ecommerce pipeline failed. Check the console output.'
-        }
-    }
-}
