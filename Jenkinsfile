@@ -66,7 +66,7 @@ stage('Push Docker Image to Nexus') {
                 echo "$NEXUS_PASSWORD" | docker login 172.17.112.25:8082 \
                     -u "$NEXUS_USER" --password-stdin
 
-                docker push ecommerce:${BUILD_NUMBER}
+                docker push 172.17.112.25:8082/ecommerce:${BUILD_NUMBER}
 
                 docker logout 172.17.112.25:8082
             '''
