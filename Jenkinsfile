@@ -50,7 +50,7 @@ pipeline {
         stage('Docker Build') {
     steps {
         sh '''
-            docker build -t 172.17.112.25:8082/ecommerce:${BUILD_NUMBER} .
+            docker build -t ecommerce:${BUILD_NUMBER} .
         '''
     }
 }
