@@ -26,6 +26,10 @@ pipeline {
             }
         }
 
+         stage('Nothing Build') {
+            steps {
+             }
+        }
 
 
         stage('Docker Build') {
