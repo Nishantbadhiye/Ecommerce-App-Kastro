@@ -40,24 +40,7 @@ pipeline {
     }
 }
 
-stage('Push Docker Image to Nexus') {
-    steps {
-        withCredentials([usernamePassword(
-            credentialsId: 'nexus-cred',
-            usernameVariable: 'NEXUS_USER',
-            passwordVariable: 'NEXUS_PASSWORD'
-        )]) {
-            sh '''
-                echo "$NEXUS_PASSWORD" | docker login 172.17.112.25:8082 \
-                    -u "$NEXUS_USER" --password-stdin
 
-                docker push 172.17.112.25:8082/ecommerce:${BUILD_NUMBER}
-
-                docker logout 172.17.112.25:8082
-            '''
-        }
-    }
-}
 
         stage('Deploy to Container') {
             steps {
