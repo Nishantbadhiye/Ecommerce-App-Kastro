@@ -26,25 +26,6 @@ pipeline {
             }
         }
 
-        stage('Deploy to Nexus') {
-            steps {
-                nexusArtifactUploader(
-                    artifacts: [[
-                        artifactId: 'EcommerceApp',
-                        classifier: '',
-                        file: 'target/EcommerceApp.war',
-                        type: 'war'
-                    ]],
-                    credentialsId: 'nexus-cred',
-                    groupId: 'com',
-                    nexusUrl: 'localhost:8086',
-                    nexusVersion: 'nexus3',
-                    protocol: 'http',
-                    repository: 'maven-snapshots',
-                    version: "0.0.${BUILD_NUMBER}-SNAPSHOT"
-                )
-            }
-        }
 
 
         stage('Docker Build') {
